@@ -268,7 +268,7 @@ function animate() {
   midNorm = Math.pow(midNorm + 0.03, 1.15);
   highNorm = Math.pow(highNorm + 0.02, 1.2);
 
-  const bassClamped = Math.min(bassNorm, 2.2);
+  const bassClamped = Math.min(bassNorm, 2.5);
   const midClamped = Math.min(midNorm, 1.9);
   const highClamped = Math.min(highNorm, 1.7);
 
@@ -339,11 +339,12 @@ function animate() {
   title.style.textShadow =
     `0 0 ${glowSize}px rgba(${themeRGB}, ${glowAlpha})`;
 
-  const scale = 1 + bassClamped * 0.08;
+  const scale = 1 + bassClamped * 0.12; // 2.5 * 0.12 ≈ 0.3 → 1.3x
   const currentCardTransform = card.style.transform || "";
   const cleanedTransform =
     currentCardTransform.replace(/scale\([^)]*\)/, "").trim();
   card.style.transform = `${cleanedTransform} scale(${scale})`.trim();
+
 
   // Border glow (mids)
   const borderGlow = 1 + midClamped * 5.5;
