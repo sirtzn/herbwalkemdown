@@ -1,44 +1,132 @@
-const card = document.getElementById("card");
+/* =========================
+   THREE.JS VOLUMETRIC FOG
+========================= */
+const canvas = document.getElementById("bg");
 
-let currentX = 0;
-let currentY = 0;
-let targetX = 0;
-let targetY = 0;
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x050505, 0.08);
 
-const maxTilt = 12;
-const smoothness = 0.08;
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 100);
+camera.position.z = 6;
 
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
+
+window.addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// Fog planes
+const fogGeo = new THREE.PlaneGeometry(20, 20);
+const fogMat = new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.08 });
+
+const fogPlanes = [];
+for (let i = 0; i < 12; i++) {
+  const plane = new THREE.Mesh(fogGeo, fogMat);
+  plane.position.z = -i * 1.2;
+  plane.rotation.z = Math.random();
+  scene.add(plane);
+  fogPlanes.push(plane);
 }
+
+/* =========================
+   AUDIO SETUP (OGG, BULLETPROOF)
+========================= */
+let audioCtx, analyser, dataArray, bufferSource;
+let audioBuffer;
+let started = false;
+
+// Load and decode OGG audio
+fetch('music.ogg')
+  .then(res => res.arrayBuffer())
+  .then(arrayBuffer => {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx.decodeAudioData(arrayBuffer);
+  })
+  .then(decoded => {
+    audioBuffer = decoded;
+    console.log("Audio loaded and decoded");
+  })
+  .catch(err => console.error("Audio load failed:", err));
+
+// Play audio on click
+document.addEventListener("click", () => {
+  if (started || !audioBuffer) return;
+  started = true;
+
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  bufferSource = audioCtx.createBufferSource();
+  bufferSource.buffer = audioBuffer;
+
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 256;
+  dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+  bufferSource.connect(analyser);
+  analyser.connect(audioCtx.destination);
+
+  bufferSource.loop = true;
+  bufferSource.start(0);
+
+  console.log("Audio playing via Web Audio buffer!");
+});
+
+/* =========================
+   CARD TILT + PARALLAX
+========================= */
+const card = document.getElementById("card");
+const mist = document.getElementById("mist");
+const title = document.getElementById("title");
+
+let curX = 0, curY = 0;
+let tgtX = 0, tgtY = 0;
+const maxTilt = 12;
+const smooth = 0.08;
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
 document.addEventListener("mousemove", (e) => {
-  const rect = card.getBoundingClientRect();
-  const x = e.clientX - (rect.left + rect.width / 2);
-  const y = e.clientY - (rect.top + rect.height / 2);
-
-  const normX = clamp(x / (rect.width / 2), -1, 1);
-  const normY = clamp(y / (rect.height / 2), -1, 1);
-
-  targetY = normX * maxTilt;
-  targetX = -normY * maxTilt;
+  const r = card.getBoundingClientRect();
+  const x = e.clientX - (r.left + r.width / 2);
+  const y = e.clientY - (r.top + r.height / 2);
+  const nx = clamp(x / (r.width / 2), -1, 1);
+  const ny = clamp(y / (r.height / 2), -1, 1);
+  tgtY = nx * maxTilt;
+  tgtX = -ny * maxTilt;
 });
 
+function tiltLoop() {
+  curX += (tgtX - curX) * smooth;
+  curY += (tgtY - curY) * smooth;
+  card.style.transform = `rotateX(${curX}deg) rotateY(${curY}deg)`;
+  mist.style.transform = `translateX(${curY*1.5}px) translateY(${curX*1.5}px) translateZ(20px)`;
+
+  const aberr = Math.abs(curX) + Math.abs(curY);
+  card.style.filter = `drop-shadow(${aberr*0.4}px 0 rgba(255,0,0,0.15)) drop-shadow(${-aberr*0.4}px 0 rgba(0,150,255,0.15))`;
+
+  requestAnimationFrame(tiltLoop);
+}
+tiltLoop();
+
+/* =========================
+   ANIMATION LOOP (AUDIO-DRIVEN)
+========================= */
 function animate() {
-  currentX += (targetX - currentX) * smoothness;
-  currentY += (targetY - currentY) * smoothness;
+  let bass = 0;
+  if (analyser) {
+    analyser.getByteFrequencyData(dataArray);
+    bass = dataArray.slice(0,12).reduce((a,b)=>a+b,0)/12;
+  }
+  const pulse = bass/140;
+  title.style.textShadow = `0 0 ${20+pulse*30}px rgba(255,255,255,${0.15+pulse*0.4})`;
 
-  card.style.transform = `
-    rotateX(${currentX}deg)
-    rotateY(${currentY}deg)
-  `;
+  fogPlanes.forEach((p,i)=>{p.rotation.z += 0.0005*(i+1);});
 
+  renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
-
 animate();
-
-document.addEventListener("mouseleave", () => {
-  targetX = 0;
-  targetY = 0;
-});
