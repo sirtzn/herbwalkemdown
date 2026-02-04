@@ -363,106 +363,30 @@ window.addEventListener("resize", resizeViz);
   }
 
   // Symmetric visualizer, centered vertically in its own canvas
-if (analyser && vizCtx) {
-  const width = vizCanvas.width;
-  const height = vizCanvas.height;
-  vizCtx.clearRect(0, 0, width, height);
+  if (analyser && vizCtx) {
+    const width = vizCanvas.width;
+    const height = vizCanvas.height;
+    vizCtx.clearRect(0, 0, width, height);
 
-  const bufferLength = dataArray.length;
-  const barCount = 40;
-  const step = Math.floor(bufferLength / barCount);
-  const centerX = width / 2;
-  const centerY = height / 2;
+    const bufferLength = dataArray.length;
+    const barCount = 40;
+    const step = Math.floor(bufferLength / barCount);
+    const barWidth = width / barCount;
+    const centerY = height / 2;
 
-  // Find peak frequency bin (strongest signal)
-  let peakIndex = 0;
-  let peakValue = 0;
-  for (let i = 0; i < bufferLength; i += step) {
-    if (dataArray[i] > peakValue) {
-      peakValue = dataArray[i];
-      peakIndex = i;
+    for (let i = 0; i < barCount; i++) {
+      const v = dataArray[i * step] || 0;
+      const mag = v / 255;
+      const barHeight = mag * (height * 0.45);
+      const x = i * barWidth;
+      const alpha = 0.15 + mag * 0.85;
+
+      vizCtx.fillStyle = `rgba(${gr},${gg},${gb},${alpha})`;
+      vizCtx.fillRect(x, centerY - barHeight, barWidth * 0.7, barHeight);
+      vizCtx.fillRect(x, centerY, barWidth * 0.7, barHeight);
     }
   }
 
-  const peakMag = peakValue / 255;
-  const peakBarHeight = peakMag * (height * 0.45);
-  const peakBarWidth = width * 0.12; // Wider center peak
-
-  // Draw mirrored center peak (left + right)
-  const peakAlpha = 0.25 + peakMag * 0.75;
-  vizCtx.fillStyle = `rgba(${gr},${gg},${gb},${peakAlpha})`;
-  
-  // Left side of peak
-  vizCtx.fillRect(
-    centerX - peakBarWidth, 
-    centerY - peakBarHeight, 
-    peakBarWidth * 0.5, 
-    peakBarHeight
-  );
-  vizCtx.fillRect(
-    centerX - peakBarWidth, 
-    centerY, 
-    peakBarWidth * 0.5, 
-    peakBarHeight
-  );
-  
-  // Right side of peak (mirror)
-  vizCtx.fillRect(
-    centerX + peakBarWidth * 0.5, 
-    centerY - peakBarHeight, 
-    peakBarWidth * 0.5, 
-    peakBarHeight
-  );
-  vizCtx.fillRect(
-    centerX + peakBarWidth * 0.5, 
-    centerY, 
-    peakBarWidth * 0.5, 
-    peakBarHeight
-  );
-
-  // Smaller bars radiating outward (also mirrored)
-  for (let i = 0; i < barCount / 2; i++) {
-    const leftFreq = dataArray[i * step] || 0;
-    const rightFreq = dataArray[(bufferLength - i * step - step) || 0] || 0;
-    
-    const leftMag = leftFreq / 255;
-    const rightMag = rightFreq / 255;
-    const barHeight = Math.max(leftMag, rightMag) * (height * 0.35);
-    const barWidth = width / barCount * 0.6;
-    const distanceFromCenter = (i + 1) * barWidth;
-    const alpha = 0.12 + Math.max(leftMag, rightMag) * 0.6;
-
-    vizCtx.fillStyle = `rgba(${gr},${gg},${gb},${alpha})`;
-
-    // Left side bars (top/bottom mirror)
-    vizCtx.fillRect(
-      centerX - distanceFromCenter - barWidth, 
-      centerY - barHeight, 
-      barWidth, 
-      barHeight
-    );
-    vizCtx.fillRect(
-      centerX - distanceFromCenter - barWidth, 
-      centerY, 
-      barWidth, 
-      barHeight
-    );
-
-    // Right side bars (mirror of left)
-    vizCtx.fillRect(
-      centerX + distanceFromCenter, 
-      centerY - barHeight, 
-      barWidth, 
-      barHeight
-    );
-    vizCtx.fillRect(
-      centerX + distanceFromCenter, 
-      centerY, 
-      barWidth, 
-      barHeight
-    );
-  }
-}
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 })();
