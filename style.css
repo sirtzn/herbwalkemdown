@@ -2,7 +2,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  user-select: none; /* Prevent text selection */
+  user-select: none; /* prevent text selection */
 }
 
 body {
@@ -13,14 +13,12 @@ body {
   color: #fff;
 }
 
-/* Three.js canvas */
 #bg {
   position: fixed;
   inset: 0;
   z-index: -1;
 }
 
-/* Centering */
 .scene {
   position: absolute;
   inset: 0;
@@ -30,11 +28,10 @@ body {
   perspective: 1200px;
 }
 
-/* Card */
 .card {
   position: relative;
   width: 360px;
-  height: 220px;
+  height: 240px;
   background: linear-gradient(135deg, #0d0d0d, #141414);
   border-radius: 16px;
   box-shadow:
@@ -48,7 +45,6 @@ body {
   will-change: transform, filter;
 }
 
-/* Title */
 .card h1 {
   font-size: 50px;
   letter-spacing: 2px;
@@ -57,20 +53,25 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   text-shadow: 0 0 20px rgba(255,255,255,0.15);
-  transition: text-shadow 0.2s ease;
+  transition: text-shadow 0.1s ease;
   font-weight: bold;
 }
 
-/* Subtitle */
-.card p {
-  margin-top: 10px;
+.card #discord {
+  font-size: 16px;
+  color: #aaa;
+  transform: translateZ(35px);
+  margin-top: 4px;
+}
+
+.card p:last-child {
+  margin-top: 8px;
   font-size: 14px;
   letter-spacing: 1px;
   color: #888;
   transform: translateZ(35px);
 }
 
-/* Mist layer */
 .mist {
   position: absolute;
   inset: -60%;

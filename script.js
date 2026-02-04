@@ -18,7 +18,6 @@ window.addEventListener("resize", () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-// Fog planes
 const fogGeo = new THREE.PlaneGeometry(20, 20);
 const fogMat = new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.08 });
 const fogPlanes = [];
@@ -80,19 +79,18 @@ const title = document.getElementById("title");
 let curX = 0, curY = 0, tgtX = 0, tgtY = 0;
 const maxTilt = 12, smooth = 0.08;
 
-function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-
-document.addEventListener("mousemove", e => {
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+document.addEventListener("mousemove",e=>{
   const r = card.getBoundingClientRect();
-  const x = e.clientX - (r.left + r.width / 2);
-  const y = e.clientY - (r.top + r.height / 2);
-  tgtY = clamp(x / (r.width/2), -1,1) * maxTilt;
-  tgtX = -clamp(y / (r.height/2), -1,1) * maxTilt;
+  const x = e.clientX-(r.left+r.width/2);
+  const y = e.clientY-(r.top+r.height/2);
+  tgtY = clamp(x/(r.width/2),-1,1)*maxTilt;
+  tgtX = -clamp(y/(r.height/2),-1,1)*maxTilt;
 });
 
-function tiltLoop() {
-  curX += (tgtX - curX) * smooth;
-  curY += (tgtY - curY) * smooth;
+function tiltLoop(){
+  curX += (tgtX-curX)*smooth;
+  curY += (tgtY-curY)*smooth;
   card.style.transform = `rotateX(${curX}deg) rotateY(${curY}deg)`;
   mist.style.transform = `translateX(${curY*1.5}px) translateY(${curX*1.5}px) translateZ(20px)`;
 
@@ -104,46 +102,48 @@ function tiltLoop() {
 tiltLoop();
 
 /* =========================
-   TYPEWRITER EFFECT ON TITLE
+   TYPEWRITER EFFECT
 ========================= */
 const text = "herb";
 let idx = 0;
 let typingForward = true;
 
-function typeEffect() {
-  if (!title) return;
-  if (typingForward) {
-    title.textContent = text.slice(0, idx+1);
+function typeEffect(){
+  if(!title) return;
+  if(typingForward){
+    title.textContent = text.slice(0,idx+1);
     idx++;
-    if (idx >= text.length) typingForward = false;
-  } else {
-    title.textContent = text.slice(0, idx-1);
+    if(idx >= text.length) typingForward=false;
+  }else{
+    title.textContent = text.slice(0,idx-1);
     idx--;
-    if (idx <= 0) typingForward = true;
+    if(idx<=0) typingForward=true;
   }
-  setTimeout(typeEffect, 200);
+  setTimeout(typeEffect, 350); // slower typing
 }
 typeEffect();
 
 /* =========================
    ANIMATION LOOP (AUDIO-REACTIVE)
 ========================= */
-function animate() {
+function animate(){
   let bass = 0;
-  if (analyser) {
+  if(analyser){
     analyser.getByteFrequencyData(dataArray);
     bass = dataArray.slice(0,12).reduce((a,b)=>a+b,0)/12;
   }
-  const pulse = bass/140;
+  const pulse = bass/100; // stronger reaction
 
-  // Audio reactive title glow
-  title.style.textShadow = `0 0 ${20+pulse*40}px rgba(255,255,255,${0.15+pulse*0.5})`;
+  // Title glow
+  title.style.textShadow = `0 0 ${20+pulse*60}px rgba(255,255,255,${0.15+pulse*0.6})`;
 
-  // Audio reactive fog opacity
+  // Fog opacity and subtle mist shift
   fogPlanes.forEach((p,i)=>{
     p.rotation.z += 0.0005*(i+1);
-    p.material.opacity = 0.05 + pulse*0.05; // subtle pulse
+    p.material.opacity = 0.05 + pulse*0.08; // stronger pulsing
   });
+
+  mist.style.transform += ` translateX(${pulse*15}px)`; // subtle reactive drift
 
   renderer.render(scene,camera);
   requestAnimationFrame(animate);
