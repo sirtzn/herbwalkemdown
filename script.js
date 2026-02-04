@@ -88,7 +88,7 @@ function applyTheme(name) {
   document.documentElement.style.setProperty("--title-glow-rgb", t.titleGlowColor);
 }
 
-// Set initial theme
+// Initial theme
 applyTheme("cyber");
 
 /* =========================
@@ -122,9 +122,9 @@ document.addEventListener("click", () => {
   analyser.fftSize = 256;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-  // Volume control
+  // Volume control (quieter)
   gainNode = audioCtx.createGain();
-  gainNode.gain.value = 0.5; // slightly quieter than default
+  gainNode.gain.value = 0.5; // adjust to taste
 
   bufferSource.connect(analyser);
   analyser.connect(gainNode);
@@ -166,7 +166,8 @@ function tiltLoop() {
   const baseTransform = `rotateX(${curX}deg) rotateY(${curY}deg)`;
   card.style.transform = baseTransform;
 
-  mist.style.transform = `translateX(${curY * 1.5}px) translateY(${curX * 1.5}px) translateZ(20px)`;
+  mist.style.transform =
+    `translateX(${curY * 1.5}px) translateY(${curX * 1.5}px) translateZ(20px)`;
 
   const aberr = Math.abs(curX) + Math.abs(curY);
   card.style.filter =
@@ -179,6 +180,7 @@ tiltLoop();
 
 /* =========================
    TYPEWRITER EFFECT
+   (no layout shift when "empty")
 ========================= */
 const text = "herb";
 let idx = 0;
@@ -186,21 +188,23 @@ let typingForward = true;
 
 function typeEffect() {
   if (!title) return;
+
   if (typingForward) {
-    title.textContent = text.slice(0, idx + 1);
+    title.textContent = text.slice(0, idx + 1) || "\u00A0";
     idx++;
     if (idx >= text.length) typingForward = false;
   } else {
-    title.textContent = text.slice(0, idx - 1);
+    title.textContent = text.slice(0, idx - 1) || "\u00A0";
     idx--;
     if (idx <= 0) typingForward = true;
   }
+
   setTimeout(typeEffect, 350);
 }
 typeEffect();
 
 /* =========================
-   ANIMATION LOOP (AUDIO-REACTIVE)
+   ANIMATION LOOP (STRONG PULSE)
 ========================= */
 let lastThemeSwitch = 0;
 
@@ -221,17 +225,18 @@ function animate() {
     highs = highBins.reduce((a, b) => a + b, 0) / highBins.length || 0;
   }
 
-  const pulse = bass / 80;
-  const midPulse = mids / 120;
-  const highPulse = highs / 140;
+  // Stronger normalization (smaller divisors -> bigger pulse)
+  const pulse = bass / 50;
+  const midPulse = mids / 80;
+  const highPulse = highs / 90;
 
-  const bassClamped = Math.min(pulse, 2);
-  const midClamped = Math.min(midPulse, 1.7);
-  const highClamped = Math.min(highPulse, 1.5);
+  const bassClamped = Math.min(pulse, 2.8);
+  const midClamped = Math.min(midPulse, 2.3);
+  const highClamped = Math.min(highPulse, 2.0);
 
-  // Title glow + card scale (bass)
-  const glowSize = 20 + bassClamped * 70;
-  const glowAlpha = 0.15 + bassClamped * 0.7;
+  // Strong title glow + scale (bass)
+  const glowSize = 25 + bassClamped * 90;
+  const glowAlpha = 0.2 + bassClamped * 0.9;
 
   const themeRGB = getComputedStyle(document.documentElement)
     .getPropertyValue("--title-glow-rgb")
@@ -239,41 +244,44 @@ function animate() {
 
   title.style.textShadow =
     `0 0 ${glowSize}px rgba(${themeRGB}, ${glowAlpha})`;
-  const scale = 1 + bassClamped * 0.06;
+
+  const scale = 1 + bassClamped * 0.11;
   const currentCardTransform = card.style.transform || "";
-  const cleanedTransform = currentCardTransform.replace(/scale\([^)]*\)/, "").trim();
+  const cleanedTransform =
+    currentCardTransform.replace(/scale\([^)]*\)/, "").trim();
   card.style.transform = `${cleanedTransform} scale(${scale})`.trim();
 
-  // Card border glow (mids)
-  const borderGlow = 1 + midClamped * 4;
+  // Stronger border glow (mids)
+  const borderGlow = 1 + midClamped * 7;
   card.style.boxShadow =
-    `0 0 ${15 + midClamped * 25}px rgba(0,0,0,0.9), ` +
-    `0 0 ${borderGlow * 8}px rgba(255,255,255,0.16), ` +
-    `inset 0 0 40px rgba(255,255,255,0.04)`;
+    `0 45px 90px rgba(0,0,0,0.95), ` +
+    `0 0 ${20 + midClamped * 35}px rgba(255,255,255,0.2), ` +
+    `inset 0 0 50px rgba(255,255,255,0.06)`;
 
   // Fog planes: opacity + depth (bass)
   const theme = THEMES[currentTheme];
   fogPlanes.forEach((p, i) => {
-    p.rotation.z += 0.0006 * (i + 1);
+    p.rotation.z += 0.0008 * (i + 1);
     p.material.opacity =
-      theme.fogPlaneBaseOpacity + bassClamped * 0.12 * (1 - i / fogPlanes.length);
-    p.position.z = -i * 1.2 - bassClamped * 0.4;
+      theme.fogPlaneBaseOpacity + bassClamped * 0.18 * (1 - i / fogPlanes.length);
+    p.position.z = -i * 1.2 - bassClamped * 0.7;
   });
 
-  // Mist: drift (bass) + subtle flicker (highs)
-  const mistDriftX = bassClamped * 22;
-  const mistScale = 1 + highClamped * 0.1;
+  // Mist: stronger drift + breathing scale
+  const mistDriftX = bassClamped * 32;
+  const mistScale = 1 + highClamped * 0.16;
   mist.style.transform += ` translateX(${mistDriftX}px) scale(${mistScale})`;
 
-  // Discord line: subtle shake on highs
+  // Discord line: noticeable shake (highs)
   if (discordLine) {
-    const shakeX = (Math.random() - 0.5) * highClamped * 3;
-    const shakeY = (Math.random() - 0.5) * highClamped * 3;
-    discordLine.style.transform = `translateZ(35px) translate(${shakeX}px, ${shakeY}px)`;
-    discordLine.style.opacity = 0.85 + highClamped * 0.15;
+    const shakeX = (Math.random() - 0.5) * highClamped * 6;
+    const shakeY = (Math.random() - 0.5) * highClamped * 6;
+    discordLine.style.transform =
+      `translateZ(35px) translate(${shakeX}px, ${shakeY}px)`;
+    discordLine.style.opacity = 0.8 + highClamped * 0.2;
   }
 
-  // Very slow theme switching on sustained energy (example / optional)
+  // Optional: slow theme switching on sustained energy
   const now = performance.now();
   if (bassClamped > 1.4 && midClamped > 1.0 && now - lastThemeSwitch > 15000) {
     const order = ["cyber", "ember", "abyss"];

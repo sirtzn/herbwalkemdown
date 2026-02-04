@@ -84,6 +84,12 @@ body {
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
   transition: text-shadow 0.1s ease;
   font-weight: bold;
+
+  /* Keep layout stable when text is "empty" */
+  min-height: 1.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #discord {
