@@ -2,7 +2,6 @@
    THREE.JS VOLUMETRIC FOG
 ========================= */
 const canvas = document.getElementById("bg");
-
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x050505, 0.08);
 
@@ -22,7 +21,6 @@ window.addEventListener("resize", () => {
 // Fog planes
 const fogGeo = new THREE.PlaneGeometry(20, 20);
 const fogMat = new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.08 });
-
 const fogPlanes = [];
 for (let i = 0; i < 12; i++) {
   const plane = new THREE.Mesh(fogGeo, fogMat);
@@ -33,13 +31,11 @@ for (let i = 0; i < 12; i++) {
 }
 
 /* =========================
-   AUDIO SETUP (OGG, BULLETPROOF)
+   AUDIO SETUP
 ========================= */
 let audioCtx, analyser, dataArray, bufferSource;
-let audioBuffer;
-let started = false;
+let audioBuffer, started = false;
 
-// Load and decode OGG audio
 fetch('music.ogg')
   .then(res => res.arrayBuffer())
   .then(arrayBuffer => {
@@ -52,7 +48,6 @@ fetch('music.ogg')
   })
   .catch(err => console.error("Audio load failed:", err));
 
-// Play audio on click
 document.addEventListener("click", () => {
   if (started || !audioBuffer) return;
   started = true;
@@ -82,21 +77,17 @@ const card = document.getElementById("card");
 const mist = document.getElementById("mist");
 const title = document.getElementById("title");
 
-let curX = 0, curY = 0;
-let tgtX = 0, tgtY = 0;
-const maxTilt = 12;
-const smooth = 0.08;
+let curX = 0, curY = 0, tgtX = 0, tgtY = 0;
+const maxTilt = 12, smooth = 0.08;
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
-document.addEventListener("mousemove", (e) => {
+document.addEventListener("mousemove", e => {
   const r = card.getBoundingClientRect();
   const x = e.clientX - (r.left + r.width / 2);
   const y = e.clientY - (r.top + r.height / 2);
-  const nx = clamp(x / (r.width / 2), -1, 1);
-  const ny = clamp(y / (r.height / 2), -1, 1);
-  tgtY = nx * maxTilt;
-  tgtX = -ny * maxTilt;
+  tgtY = clamp(x / (r.width/2), -1,1) * maxTilt;
+  tgtX = -clamp(y / (r.height/2), -1,1) * maxTilt;
 });
 
 function tiltLoop() {
@@ -105,7 +96,7 @@ function tiltLoop() {
   card.style.transform = `rotateX(${curX}deg) rotateY(${curY}deg)`;
   mist.style.transform = `translateX(${curY*1.5}px) translateY(${curX*1.5}px) translateZ(20px)`;
 
-  const aberr = Math.abs(curX) + Math.abs(curY);
+  const aberr = Math.abs(curX)+Math.abs(curY);
   card.style.filter = `drop-shadow(${aberr*0.4}px 0 rgba(255,0,0,0.15)) drop-shadow(${-aberr*0.4}px 0 rgba(0,150,255,0.15))`;
 
   requestAnimationFrame(tiltLoop);
@@ -113,7 +104,29 @@ function tiltLoop() {
 tiltLoop();
 
 /* =========================
-   ANIMATION LOOP (AUDIO-DRIVEN)
+   TYPEWRITER EFFECT ON TITLE
+========================= */
+const text = "herb";
+let idx = 0;
+let typingForward = true;
+
+function typeEffect() {
+  if (!title) return;
+  if (typingForward) {
+    title.textContent = text.slice(0, idx+1);
+    idx++;
+    if (idx >= text.length) typingForward = false;
+  } else {
+    title.textContent = text.slice(0, idx-1);
+    idx--;
+    if (idx <= 0) typingForward = true;
+  }
+  setTimeout(typeEffect, 200);
+}
+typeEffect();
+
+/* =========================
+   ANIMATION LOOP (AUDIO-REACTIVE)
 ========================= */
 function animate() {
   let bass = 0;
@@ -122,11 +135,17 @@ function animate() {
     bass = dataArray.slice(0,12).reduce((a,b)=>a+b,0)/12;
   }
   const pulse = bass/140;
-  title.style.textShadow = `0 0 ${20+pulse*30}px rgba(255,255,255,${0.15+pulse*0.4})`;
 
-  fogPlanes.forEach((p,i)=>{p.rotation.z += 0.0005*(i+1);});
+  // Audio reactive title glow
+  title.style.textShadow = `0 0 ${20+pulse*40}px rgba(255,255,255,${0.15+pulse*0.5})`;
 
-  renderer.render(scene, camera);
+  // Audio reactive fog opacity
+  fogPlanes.forEach((p,i)=>{
+    p.rotation.z += 0.0005*(i+1);
+    p.material.opacity = 0.05 + pulse*0.05; // subtle pulse
+  });
+
+  renderer.render(scene,camera);
   requestAnimationFrame(animate);
 }
 animate();

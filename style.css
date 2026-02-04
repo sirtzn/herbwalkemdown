@@ -2,13 +2,14 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  user-select: none; /* Prevent text selection */
 }
 
 body {
   height: 100vh;
   overflow: hidden;
   background: black;
-  font-family: system-ui, sans-serif;
+  font-family: 'Courier New', Courier, monospace;
   color: #fff;
 }
 
@@ -32,8 +33,8 @@ body {
 /* Card */
 .card {
   position: relative;
-  width: 320px;
-  height: 200px;
+  width: 360px;
+  height: 220px;
   background: linear-gradient(135deg, #0d0d0d, #141414);
   border-radius: 16px;
   box-shadow:
@@ -49,17 +50,21 @@ body {
 
 /* Title */
 .card h1 {
-  font-size: 42px;
+  font-size: 50px;
   letter-spacing: 2px;
   transform: translateZ(55px);
+  background: linear-gradient(to bottom, #fff, #000);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   text-shadow: 0 0 20px rgba(255,255,255,0.15);
   transition: text-shadow 0.2s ease;
+  font-weight: bold;
 }
 
 /* Subtitle */
 .card p {
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: 10px;
+  font-size: 14px;
   letter-spacing: 1px;
   color: #888;
   transform: translateZ(35px);
