@@ -1,6 +1,3 @@
-/* =========================
-   ROOT VARIABLES
-========================= */
 :root {
   --card-border-from: #0ff;
   --card-border-to: #f0f;
@@ -9,9 +6,6 @@
   --title-glow-rgb: 255,255,255;
 }
 
-/* =========================
-   GLOBAL
-========================= */
 *,
 *::before,
 *::after {
@@ -29,16 +23,12 @@ body {
   color: #fff;
 }
 
-/* Background canvas */
 #bg {
   position: fixed;
   inset: 0;
   z-index: -1;
 }
 
-/* =========================
-   SCENE + CARD
-========================= */
 .scene {
   position: absolute;
   inset: 0;
@@ -51,7 +41,7 @@ body {
 .card {
   position: relative;
   width: 360px;
-  height: 260px; /* slightly taller to reserve visualizer area */
+  height: 240px;
   background: linear-gradient(135deg, #0d0d0d, #141414);
   border-radius: 16px;
   box-shadow:
@@ -66,16 +56,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 28px;
-  padding-bottom: 40px; /* dedicated space for visualizer */
+  justify-content: center;
   transform-style: preserve-3d;
   will-change: transform, filter, box-shadow;
   overflow: hidden;
 }
 
-/* =========================
-   TEXT
-========================= */
 .card h1 {
   font-size: 50px;
   letter-spacing: 2px;
@@ -86,7 +72,7 @@ body {
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
   transition: text-shadow 0.1s ease;
   font-weight: bold;
-  min-height: 1.2em;            /* prevent layout shift when typing */
+  min-height: 1.2em;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -107,9 +93,6 @@ body {
   transform: translateZ(35px);
 }
 
-/* =========================
-   MIST LAYER
-========================= */
 .mist {
   position: absolute;
   inset: -60px;
@@ -121,15 +104,20 @@ body {
   transform-style: preserve-3d;
 }
 
-/* =========================
-   VISUALIZER
-========================= */
-#viz {
-  position: absolute;
-  left: 10%;
-  right: 10%;
-  bottom: 8px;
-  height: 36px;
-  display: block;
+/* Visualizer container: lower on page */
+#viz-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 40px;
+  display: flex;
+  justify-content: center;
   pointer-events: none;
+}
+
+#viz {
+  width: 60vw;
+  max-width: 600px;
+  height: 60px;
+  display: block;
 }

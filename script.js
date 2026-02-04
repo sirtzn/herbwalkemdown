@@ -18,7 +18,6 @@ window.addEventListener("resize", () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-/* Fog planes */
 const fogGeo = new THREE.PlaneGeometry(20, 20);
 const fogPlanes = [];
 for (let i = 0; i < 12; i++) {
@@ -35,7 +34,7 @@ for (let i = 0; i < 12; i++) {
 }
 
 /* =========================
-   COLOR THEMES
+   THEMES (SMOOTH LOOP)
 ========================= */
 const THEMES = {
   cyber: {
@@ -73,49 +72,40 @@ let currentThemeName = themeOrder[0];
 
 let themeFrom = THEMES[themeOrder[0]];
 let themeTo = THEMES[themeOrder[1]];
-let themeT = 0;          // 0..1
-const THEME_CYCLE_DURATION = 20000; // ms full crossfade
+let themeT = 0;
+const THEME_CYCLE_DURATION = 20000;
 
 let lastFrameTime = performance.now();
 
-function hexToRgb(hex) {
+const hexToRgb = hex => {
   const h = hex.toString(16).padStart(6, "0");
   return {
     r: parseInt(h.slice(0, 2), 16),
     g: parseInt(h.slice(2, 4), 16),
     b: parseInt(h.slice(4, 6), 16)
   };
-}
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-function lerpRgb(c1, c2, t) {
-  return {
-    r: Math.round(lerp(c1.r, c2.r, t)),
-    g: Math.round(lerp(c1.g, c2.g, t)),
-    b: Math.round(lerp(c1.b, c2.b, t))
-  };
-}
-function rgbToHex({ r, g, b }) {
-  return (r << 16) | (g << 8) | b;
-}
-function parseRgbTriple(str) {
+};
+const lerp = (a, b, t) => a + (b - a) * t;
+const lerpRgb = (c1, c2, t) => ({
+  r: Math.round(lerp(c1.r, c2.r, t)),
+  g: Math.round(lerp(c1.g, c2.g, t)),
+  b: Math.round(lerp(c1.b, c2.b, t))
+});
+const rgbToHex = ({ r, g, b }) => (r << 16) | (g << 8) | b;
+const parseRgbTriple = str => {
   const p = str.split(",").map(v => parseInt(v.trim(), 10));
   return { r: p[0] || 255, g: p[1] || 255, b: p[2] || 255 };
-}
-function rgbTripleString({ r, g, b }) {
-  return `${r},${g},${b}`;
-}
-function parseRgbaOpacity(rgba) {
+};
+const rgbTripleString = ({ r, g, b }) => `${r},${g},${b}`;
+
+const parseRgbaOpacity = rgba => {
   const m = rgba.match(/rgba\([^,]+,[^,]+,[^,]+,([^)\s]+)\)/i);
-  if (!m) return 0.1;
-  return parseFloat(m[1]);
-}
-function setRgbaOpacity(rgba, alpha) {
-  return rgba.replace(/rgba\(([^)]+),[^)]+\)/i, (_, rgb) => {
-    return `rgba(${rgb}, ${alpha.toFixed(2)})`;
-  });
-}
+  return m ? parseFloat(m[1]) : 0.1;
+};
+const setRgbaOpacity = (rgba, alpha) =>
+  rgba.replace(/rgba\(([^)]+),[^)]+\)/i, (_, rgb) =>
+    `rgba(${rgb}, ${alpha.toFixed(2)})`
+  );
 
 function advanceTheme(dt) {
   themeT += dt / THEME_CYCLE_DURATION;
@@ -177,7 +167,7 @@ function advanceTheme(dt) {
 }
 
 /* =========================
-   AUDIO SETUP
+   AUDIO
 ========================= */
 let audioCtx, analyser, dataArray, bufferSource, gainNode;
 let audioBuffer = null;
@@ -219,7 +209,7 @@ document.addEventListener("click", () => {
 });
 
 /* =========================
-   DOM REFERENCES
+   DOM
 ========================= */
 const card = document.getElementById("card");
 const mist = document.getElementById("mist");
@@ -235,9 +225,7 @@ let curX = 0, curY = 0, tgtX = 0, tgtY = 0;
 const maxTilt = 12;
 const tiltSmooth = 0.08;
 
-function clamp(v, min, max) {
-  return Math.max(min, Math.min(max, v));
-}
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 document.addEventListener("mousemove", e => {
   const r = card.getBoundingClientRect();
@@ -247,7 +235,7 @@ document.addEventListener("mousemove", e => {
   tgtX = -clamp(y / (r.height / 2), -1, 1) * maxTilt;
 });
 
-function tiltLoop() {
+(function tiltLoop() {
   curX += (tgtX - curX) * tiltSmooth;
   curY += (tgtY - curY) * tiltSmooth;
 
@@ -263,8 +251,7 @@ function tiltLoop() {
     `drop-shadow(${-aberr * 0.4}px 0 rgba(0,160,255,0.18))`;
 
   requestAnimationFrame(tiltLoop);
-}
-tiltLoop();
+})();
 
 /* =========================
    TYPEWRITER
@@ -273,8 +260,7 @@ const text = "herb";
 let idx = 0;
 let typingForward = true;
 
-function typeEffect() {
-  if (!title) return;
+(function typeEffect() {
   if (typingForward) {
     title.textContent = text.slice(0, idx + 1) || "\u00A0";
     idx++;
@@ -285,16 +271,18 @@ function typeEffect() {
     if (idx <= 0) typingForward = true;
   }
   setTimeout(typeEffect, 350);
-}
-typeEffect();
+})();
 
 /* =========================
-   VISUALIZER SIZING
+   VISUALIZER SIZE
 ========================= */
 function resizeViz() {
-  const r = card.getBoundingClientRect();
-  vizCanvas.width = r.width * (window.devicePixelRatio || 1) * 0.8;
-  vizCanvas.height = 36 * (window.devicePixelRatio || 1);
+  const dpr = window.devicePixelRatio || 1;
+  const cssWidth = vizCanvas.clientWidth || 600;
+  const cssHeight = vizCanvas.clientHeight || 60;
+  vizCanvas.width = cssWidth * dpr;
+  vizCanvas.height = cssHeight * dpr;
+  vizCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 resizeViz();
 window.addEventListener("resize", resizeViz);
@@ -302,7 +290,7 @@ window.addEventListener("resize", resizeViz);
 /* =========================
    MAIN ANIMATION LOOP
 ========================= */
-function animate() {
+(function animate() {
   const now = performance.now();
   const dt = now - lastFrameTime;
   lastFrameTime = now;
@@ -315,14 +303,12 @@ function animate() {
     const bassBins = dataArray.slice(0, 18);
     const midBins = dataArray.slice(18, 64);
     const highBins = dataArray.slice(64, 128);
-
     const avg = arr => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
     bass = avg(bassBins);
     mids = avg(midBins);
     highs = avg(highBins);
   }
 
-  // Sensitive mapping
   let bassNorm = bass / 70;
   let midNorm = mids / 90;
   let highNorm = highs / 110;
@@ -338,8 +324,8 @@ function animate() {
   const glowRgbStr = getComputedStyle(document.documentElement)
     .getPropertyValue("--title-glow-rgb")
     .trim() || "255,255,255";
-
   const [gr, gg, gb] = glowRgbStr.split(",").map(v => parseInt(v.trim(), 10));
+
   const glowSize = 24 + bassClamped * 60;
   const glowAlpha = 0.25 + bassClamped * 0.75;
   title.style.textShadow =
@@ -376,35 +362,31 @@ function animate() {
     discordLine.style.opacity = 0.82 + highClamped * 0.18;
   }
 
-  // Symmetric visualizer
+  // Symmetric visualizer, centered vertically in its own canvas
   if (analyser && vizCtx) {
-    const w = vizCanvas.width;
-    const h = vizCanvas.height;
-    vizCtx.clearRect(0, 0, w, h);
+    const width = vizCanvas.width;
+    const height = vizCanvas.height;
+    vizCtx.clearRect(0, 0, width, height);
 
     const bufferLength = dataArray.length;
     const barCount = 40;
     const step = Math.floor(bufferLength / barCount);
-    const barWidth = w / barCount;
+    const barWidth = width / barCount;
+    const centerY = height / 2;
 
     for (let i = 0; i < barCount; i++) {
       const v = dataArray[i * step] || 0;
       const mag = v / 255;
-      const barHeight = mag * (h * 0.45);
+      const barHeight = mag * (height * 0.45);
       const x = i * barWidth;
-      const yCenter = h / 2;
-
       const alpha = 0.15 + mag * 0.85;
-      vizCtx.fillStyle = `rgba(${gr},${gg},${gb},${alpha})`;
 
-      // Top half
-      vizCtx.fillRect(x, yCenter - barHeight, barWidth * 0.7, barHeight);
-      // Bottom half (mirror)
-      vizCtx.fillRect(x, yCenter, barWidth * 0.7, barHeight);
+      vizCtx.fillStyle = `rgba(${gr},${gg},${gb},${alpha})`;
+      vizCtx.fillRect(x, centerY - barHeight, barWidth * 0.7, barHeight);
+      vizCtx.fillRect(x, centerY, barWidth * 0.7, barHeight);
     }
   }
 
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
-}
-animate();
+})();
