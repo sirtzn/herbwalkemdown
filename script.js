@@ -1,19 +1,44 @@
 const card = document.getElementById("card");
 
+let currentX = 0;
+let currentY = 0;
+let targetX = 0;
+let targetY = 0;
+
+const maxTilt = 12;
+const smoothness = 0.08;
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
 document.addEventListener("mousemove", (e) => {
   const rect = card.getBoundingClientRect();
-  const x = e.clientX - rect.left - rect.width / 2;
-  const y = e.clientY - rect.top - rect.height / 2;
+  const x = e.clientX - (rect.left + rect.width / 2);
+  const y = e.clientY - (rect.top + rect.height / 2);
 
-  const rotateX = (-y / rect.height) * 15;
-  const rotateY = (x / rect.width) * 15;
+  const normX = clamp(x / (rect.width / 2), -1, 1);
+  const normY = clamp(y / (rect.height / 2), -1, 1);
 
-  card.style.transform = `
-    rotateX(${rotateX}deg)
-    rotateY(${rotateY}deg)
-  `;
+  targetY = normX * maxTilt;
+  targetX = -normY * maxTilt;
 });
 
+function animate() {
+  currentX += (targetX - currentX) * smoothness;
+  currentY += (targetY - currentY) * smoothness;
+
+  card.style.transform = `
+    rotateX(${currentX}deg)
+    rotateY(${currentY}deg)
+  `;
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+
 document.addEventListener("mouseleave", () => {
-  card.style.transform = "rotateX(0deg) rotateY(0deg)";
+  targetX = 0;
+  targetY = 0;
 });
