@@ -68,28 +68,49 @@ const THEMES = {
 };
 
 let currentTheme = "cyber";
+let themeLerpProgress = 1;
+let themeFrom = THEMES.cyber;
+let themeTo = THEMES.cyber;
+let themeTransitionDuration = 1500;
+let lastFrameTime = performance.now();
 
-function applyTheme(name) {
-  const t = THEMES[name] || THEMES.cyber;
-  currentTheme = name;
+function lerpColorChannel(a, b, t) {
+  return Math.round(a + (b - a) * t);
+}
 
-  // Scene fog color
-  scene.fog.color.setHex(t.fogColor);
-  fogPlanes.forEach(p => {
-    p.material.color.setHex(t.fogColor);
-    p.material.opacity = t.fogPlaneBaseOpacity;
-  });
+function hexToRgb(hex) {
+  const h = hex.toString(16).padStart(6, "0");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return { r, g, b };
+}
 
-  // Card border + mist colors via CSS variables
-  document.documentElement.style.setProperty("--card-border-from", t.cardBorderFrom);
-  document.documentElement.style.setProperty("--card-border-to", t.cardBorderTo);
-  document.documentElement.style.setProperty("--mist-color-a", t.mistColorA);
-  document.documentElement.style.setProperty("--mist-color-b", t.mistColorB);
-  document.documentElement.style.setProperty("--title-glow-rgb", t.titleGlowColor);
+function cssColorToRgbTriple(str) {
+  const parts = str.split(",").map(s => parseInt(s.trim(), 10));
+  return { r: parts[0] || 255, g: parts[1] || 255, b: parts[2] || 255 };
+}
+
+function rgbTripleToString({ r, g, b }) {
+  return `${r},${g},${b}`;
+}
+
+// Start a smooth theme transition
+function applyTheme(targetName, duration = 1500) {
+  const next = THEMES[targetName] || THEMES.cyber;
+  currentTheme = targetName;
+
+  themeFrom = { ...themeTo };
+  themeTo = next;
+  themeLerpProgress = 0;
+  themeTransitionDuration = duration;
+
+  // Keep fog roughly in range to avoid a big pop
+  scene.fog.color.setHex(next.fogColor);
 }
 
 // Initial theme
-applyTheme("cyber");
+applyTheme("cyber", 1);
 
 /* =========================
    AUDIO SETUP
@@ -124,7 +145,7 @@ document.addEventListener("click", () => {
 
   // Volume control (quieter)
   gainNode = audioCtx.createGain();
-  gainNode.gain.value = 0.5; // adjust to taste
+  gainNode.gain.value = 0.5; // tweak volume here
 
   bufferSource.connect(analyser);
   analyser.connect(gainNode);
@@ -204,11 +225,24 @@ function typeEffect() {
 typeEffect();
 
 /* =========================
-   ANIMATION LOOP (STRONG PULSE)
+   ANIMATION LOOP
+   (smooth themes + sensitive pulse)
 ========================= */
 let lastThemeSwitch = 0;
 
 function animate() {
+  const now = performance.now();
+  const dt = now - lastFrameTime;
+  lastFrameTime = now;
+
+  // Progress theme lerp
+  if (themeLerpProgress < 1) {
+    themeLerpProgress = Math.min(
+      1,
+      themeLerpProgress + dt / themeTransitionDuration
+    );
+  }
+
   let bass = 0;
   let mids = 0;
   let highs = 0;
@@ -225,18 +259,78 @@ function animate() {
     highs = highBins.reduce((a, b) => a + b, 0) / highBins.length || 0;
   }
 
-  // Stronger normalization (smaller divisors -> bigger pulse)
-  const pulse = bass / 50;
-  const midPulse = mids / 80;
-  const highPulse = highs / 90;
+  // More sensitive mapping (baseline + easing)
+  let bassNorm = bass / 70;
+  let midNorm = mids / 90;
+  let highNorm = highs / 110;
 
-  const bassClamped = Math.min(pulse, 2.8);
-  const midClamped = Math.min(midPulse, 2.3);
-  const highClamped = Math.min(highPulse, 2.0);
+  bassNorm = Math.pow(bassNorm + 0.05, 1.1);
+  midNorm = Math.pow(midNorm + 0.03, 1.15);
+  highNorm = Math.pow(highNorm + 0.02, 1.2);
 
-  // Strong title glow + scale (bass)
-  const glowSize = 25 + bassClamped * 90;
-  const glowAlpha = 0.2 + bassClamped * 0.9;
+  const bassClamped = Math.min(bassNorm, 2.2);
+  const midClamped = Math.min(midNorm, 1.9);
+  const highClamped = Math.min(highNorm, 1.7);
+
+  /* ---------- THEME COLOR LERP ---------- */
+  const fromFog = hexToRgb(themeFrom.fogColor);
+  const toFog = hexToRgb(themeTo.fogColor);
+
+  const fogRgb = {
+    r: lerpColorChannel(fromFog.r, toFog.r, themeLerpProgress),
+    g: lerpColorChannel(fromFog.g, toFog.g, themeLerpProgress),
+    b: lerpColorChannel(fromFog.b, toFog.b, themeLerpProgress)
+  };
+  const fogHex = (fogRgb.r << 16) | (fogRgb.g << 8) | fogRgb.b;
+  scene.fog.color.setHex(fogHex);
+  fogPlanes.forEach(p => p.material.color.setHex(fogHex));
+
+  // Border: soft snap halfway through transition
+  document.documentElement.style.setProperty(
+    "--card-border-from",
+    themeLerpProgress < 0.5 ? themeFrom.cardBorderFrom : themeTo.cardBorderFrom
+  );
+  document.documentElement.style.setProperty(
+    "--card-border-to",
+    themeLerpProgress < 0.5 ? themeFrom.cardBorderTo : themeTo.cardBorderTo
+  );
+
+  // Mist intensities: approximate smoothness by scaling alpha numbers
+  const mistATo = themeTo.mistColorA;
+  const mistBTo = themeTo.mistColorB;
+  const mistIntensity = 1 + themeLerpProgress * 0.3;
+
+  document.documentElement.style.setProperty(
+    "--mist-color-a",
+    mistATo.replace(/0\.[0-9]+/, m =>
+      (parseFloat(m) * mistIntensity).toFixed(2)
+    )
+  );
+  document.documentElement.style.setProperty(
+    "--mist-color-b",
+    mistBTo.replace(/0\.[0-9]+/, m =>
+      (parseFloat(m) * mistIntensity).toFixed(2)
+    )
+  );
+
+  // Title glow RGB triple
+  const fromGlowRgb = cssColorToRgbTriple(themeFrom.titleGlowColor);
+  const toGlowRgb = cssColorToRgbTriple(themeTo.titleGlowColor);
+  const glowRgb = {
+    r: lerpColorChannel(fromGlowRgb.r, toGlowRgb.r, themeLerpProgress),
+    g: lerpColorChannel(fromGlowRgb.g, toGlowRgb.g, themeLerpProgress),
+    b: lerpColorChannel(fromGlowRgb.b, toGlowRgb.b, themeLerpProgress)
+  };
+  document.documentElement.style.setProperty(
+    "--title-glow-rgb",
+    rgbTripleToString(glowRgb)
+  );
+
+  /* ---------- AUDIO-REACTIVE VISUALS ---------- */
+
+  // Title glow + card scale (more sensitive)
+  const glowSize = 24 + bassClamped * 60;
+  const glowAlpha = 0.25 + bassClamped * 0.75;
 
   const themeRGB = getComputedStyle(document.documentElement)
     .getPropertyValue("--title-glow-rgb")
@@ -245,48 +339,47 @@ function animate() {
   title.style.textShadow =
     `0 0 ${glowSize}px rgba(${themeRGB}, ${glowAlpha})`;
 
-  const scale = 1 + bassClamped * 0.11;
+  const scale = 1 + bassClamped * 0.08;
   const currentCardTransform = card.style.transform || "";
   const cleanedTransform =
     currentCardTransform.replace(/scale\([^)]*\)/, "").trim();
   card.style.transform = `${cleanedTransform} scale(${scale})`.trim();
 
-  // Stronger border glow (mids)
-  const borderGlow = 1 + midClamped * 7;
+  // Border glow (mids)
+  const borderGlow = 1 + midClamped * 5.5;
   card.style.boxShadow =
     `0 45px 90px rgba(0,0,0,0.95), ` +
-    `0 0 ${20 + midClamped * 35}px rgba(255,255,255,0.2), ` +
-    `inset 0 0 50px rgba(255,255,255,0.06)`;
+    `0 0 ${18 + midClamped * 28}px rgba(255,255,255,0.22), ` +
+    `inset 0 0 48px rgba(255,255,255,0.07)`;
 
-  // Fog planes: opacity + depth (bass)
+  // Fog planes (bass)
   const theme = THEMES[currentTheme];
   fogPlanes.forEach((p, i) => {
     p.rotation.z += 0.0008 * (i + 1);
     p.material.opacity =
-      theme.fogPlaneBaseOpacity + bassClamped * 0.18 * (1 - i / fogPlanes.length);
-    p.position.z = -i * 1.2 - bassClamped * 0.7;
+      theme.fogPlaneBaseOpacity + bassClamped * 0.14 * (1 - i / fogPlanes.length);
+    p.position.z = -i * 1.2 - bassClamped * 0.55;
   });
 
-  // Mist: stronger drift + breathing scale
-  const mistDriftX = bassClamped * 32;
-  const mistScale = 1 + highClamped * 0.16;
+  // Mist: drift + breathing
+  const mistDriftX = bassClamped * 26;
+  const mistScale = 1 + highClamped * 0.13;
   mist.style.transform += ` translateX(${mistDriftX}px) scale(${mistScale})`;
 
-  // Discord line: noticeable shake (highs)
+  // Discord line: sensitive shake
   if (discordLine) {
-    const shakeX = (Math.random() - 0.5) * highClamped * 6;
-    const shakeY = (Math.random() - 0.5) * highClamped * 6;
+    const shakeX = (Math.random() - 0.5) * highClamped * 5;
+    const shakeY = (Math.random() - 0.5) * highClamped * 5;
     discordLine.style.transform =
       `translateZ(35px) translate(${shakeX}px, ${shakeY}px)`;
-    discordLine.style.opacity = 0.8 + highClamped * 0.2;
+    discordLine.style.opacity = 0.82 + highClamped * 0.18;
   }
 
   // Optional: slow theme switching on sustained energy
-  const now = performance.now();
   if (bassClamped > 1.4 && midClamped > 1.0 && now - lastThemeSwitch > 15000) {
     const order = ["cyber", "ember", "abyss"];
     const next = order[(order.indexOf(currentTheme) + 1) % order.length];
-    applyTheme(next);
+    applyTheme(next, 1800);
     lastThemeSwitch = now;
   }
 
