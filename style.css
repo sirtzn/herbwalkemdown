@@ -1,13 +1,70 @@
-body {
-  font-family: Arial, sans-serif;
-  background-color: #0f0f0f;
-  color: #ffffff;
-  text-align: center;
-  padding-top: 100px;
+* {
+  box-sizing: border-box;
 }
 
-button {
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
+body {
+  margin: 0;
+  height: 100vh;
+  background: radial-gradient(circle at top, #0a0a0a, #000);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.scene {
+  perspective: 1200px;
+}
+
+.card {
+  position: relative;
+  width: 320px;
+  height: 200px;
+  background: linear-gradient(135deg, #0f0f0f, #141414);
+  border-radius: 16px;
+  box-shadow:
+    0 40px 80px rgba(0, 0, 0, 0.8),
+    inset 0 0 40px rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transform-style: preserve-3d;
+  transition: transform 0.1s ease-out;
+  overflow: hidden;
+}
+
+.card h1 {
+  margin: 0;
+  font-size: 42px;
+  letter-spacing: 2px;
+  color: #e5e5e5;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+  transform: translateZ(40px);
+}
+
+.card p {
+  margin-top: 8px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #888;
+  transform: translateZ(30px);
+}
+
+.mist {
+  position: absolute;
+  inset: -50%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.06), transparent 60%),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.04), transparent 55%);
+  filter: blur(30px);
+  animation: drift 12s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes drift {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(-40px, -20px); }
+  100% { transform: translate(0, 0); }
 }
