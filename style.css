@@ -1,24 +1,44 @@
-* {
-  margin: 0;
-  padding: 0;
+/* =========================
+   ROOT VARIABLES
+========================= */
+:root {
+  --card-border-from: #0ff;
+  --card-border-to: #f0f;
+  --mist-color-a: rgba(255,255,255,0.08);
+  --mist-color-b: rgba(255,255,255,0.05);
+  --title-glow-rgb: 255,255,255;
+}
+
+/* =========================
+   GLOBAL
+========================= */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
-  user-select: none; /* prevent text selection */
 }
 
 body {
+  margin: 0;
+  padding: 0;
+  user-select: none;
   height: 100vh;
   overflow: hidden;
-  background: black;
-  font-family: 'Courier New', Courier, monospace;
+  background: #000;
+  font-family: "Courier New", Courier, monospace;
   color: #fff;
 }
 
+/* Background canvas */
 #bg {
   position: fixed;
   inset: 0;
   z-index: -1;
 }
 
+/* =========================
+   SCENE + CARD
+========================= */
 .scene {
   position: absolute;
   inset: 0;
@@ -35,29 +55,38 @@ body {
   background: linear-gradient(135deg, #0d0d0d, #141414);
   border-radius: 16px;
   box-shadow:
-    0 50px 100px rgba(0,0,0,0.9),
-    inset 0 0 50px rgba(255,255,255,0.03);
+    0 50px 100px rgba(0, 0, 0, 0.9),
+    inset 0 0 50px rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(135deg, #0d0d0d, #141414),
+    linear-gradient(135deg, var(--card-border-from), var(--card-border-to));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   transform-style: preserve-3d;
-  will-change: transform, filter;
+  will-change: transform, filter, box-shadow;
 }
 
+/* =========================
+   TEXT
+========================= */
 .card h1 {
   font-size: 50px;
   letter-spacing: 2px;
   transform: translateZ(55px);
-  background: linear-gradient(to bottom, #fff, #000);
+  background: linear-gradient(to bottom, #ffffff, #000000);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 20px rgba(255,255,255,0.15);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
   transition: text-shadow 0.1s ease;
   font-weight: bold;
 }
 
-.card #discord {
+#discord {
   font-size: 16px;
   color: #aaa;
   transform: translateZ(35px);
@@ -72,12 +101,15 @@ body {
   transform: translateZ(35px);
 }
 
+/* =========================
+   MIST LAYER
+========================= */
 .mist {
   position: absolute;
-  inset: -60%;
+  inset: -60px;
   background:
-    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), transparent 60%),
-    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.05), transparent 55%);
+    radial-gradient(circle at 30% 30%, var(--mist-color-a), transparent 60%),
+    radial-gradient(circle at 70% 60%, var(--mist-color-b), transparent 55%);
   filter: blur(35px);
   pointer-events: none;
   transform-style: preserve-3d;
