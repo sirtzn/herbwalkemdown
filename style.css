@@ -51,7 +51,7 @@ body {
 .card {
   position: relative;
   width: 360px;
-  height: 240px;
+  height: 260px; /* slightly taller to reserve visualizer area */
   background: linear-gradient(135deg, #0d0d0d, #141414);
   border-radius: 16px;
   box-shadow:
@@ -65,10 +65,12 @@ body {
   background-clip: padding-box, border-box;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  padding-top: 28px;
+  padding-bottom: 40px; /* dedicated space for visualizer */
   transform-style: preserve-3d;
   will-change: transform, filter, box-shadow;
+  overflow: hidden;
 }
 
 /* =========================
@@ -84,9 +86,7 @@ body {
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
   transition: text-shadow 0.1s ease;
   font-weight: bold;
-
-  /* Keep layout stable when text is "empty" */
-  min-height: 1.2em;
+  min-height: 1.2em;            /* prevent layout shift when typing */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -119,4 +119,17 @@ body {
   filter: blur(35px);
   pointer-events: none;
   transform-style: preserve-3d;
+}
+
+/* =========================
+   VISUALIZER
+========================= */
+#viz {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 8px;
+  height: 36px;
+  display: block;
+  pointer-events: none;
 }
