@@ -18,7 +18,7 @@ window.addEventListener("resize", () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-// Fog planes (volumetric-ish layers)
+/* Fog planes */
 const fogGeo = new THREE.PlaneGeometry(20, 20);
 const fogMat = new THREE.MeshBasicMaterial({
   color: 0x0c1020,
@@ -77,7 +77,6 @@ let lastFrameTime = performance.now();
 function lerpColorChannel(a, b, t) {
   return Math.round(a + (b - a) * t);
 }
-
 function hexToRgb(hex) {
   const h = hex.toString(16).padStart(6, "0");
   const r = parseInt(h.slice(0, 2), 16);
@@ -85,17 +84,15 @@ function hexToRgb(hex) {
   const b = parseInt(h.slice(4, 6), 16);
   return { r, g, b };
 }
-
 function cssColorToRgbTriple(str) {
   const parts = str.split(",").map(s => parseInt(s.trim(), 10));
   return { r: parts[0] || 255, g: parts[1] || 255, b: parts[2] || 255 };
 }
-
 function rgbTripleToString({ r, g, b }) {
   return `${r},${g},${b}`;
 }
 
-// Start a smooth theme transition
+// Smooth theme change
 function applyTheme(targetName, duration = 1500) {
   const next = THEMES[targetName] || THEMES.cyber;
   currentTheme = targetName;
@@ -105,11 +102,8 @@ function applyTheme(targetName, duration = 1500) {
   themeLerpProgress = 0;
   themeTransitionDuration = duration;
 
-  // Keep fog roughly in range to avoid a big pop
   scene.fog.color.setHex(next.fogColor);
 }
-
-// Initial theme
 applyTheme("cyber", 1);
 
 /* =========================
@@ -143,9 +137,8 @@ document.addEventListener("click", () => {
   analyser.fftSize = 256;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-  // Volume control (quieter)
   gainNode = audioCtx.createGain();
-  gainNode.gain.value = 0.5; // tweak volume here
+  gainNode.gain.value = 0.5;
 
   bufferSource.connect(analyser);
   analyser.connect(gainNode);
@@ -153,8 +146,6 @@ document.addEventListener("click", () => {
 
   bufferSource.loop = true;
   bufferSource.start(0);
-
-  console.log("Audio playing via Web Audio buffer!");
 });
 
 /* =========================
@@ -201,7 +192,6 @@ tiltLoop();
 
 /* =========================
    TYPEWRITER EFFECT
-   (no layout shift when "empty")
 ========================= */
 const text = "herb";
 let idx = 0;
@@ -225,8 +215,22 @@ function typeEffect() {
 typeEffect();
 
 /* =========================
+   VISUALIZER CANVAS (BAR WAVE)
+========================= */
+const vizCanvas = document.getElementById("viz");
+const vizCtx = vizCanvas.getContext("2d");
+
+// Size viz to card width, small height
+function resizeViz() {
+  const rect = card.getBoundingClientRect();
+  vizCanvas.width = rect.width * window.devicePixelRatio;
+  vizCanvas.height = 60 * window.devicePixelRatio;
+}
+resizeViz();
+window.addEventListener("resize", resizeViz);
+
+/* =========================
    ANIMATION LOOP
-   (smooth themes + sensitive pulse)
 ========================= */
 let lastThemeSwitch = 0;
 
@@ -235,7 +239,6 @@ function animate() {
   const dt = now - lastFrameTime;
   lastFrameTime = now;
 
-  // Progress theme lerp
   if (themeLerpProgress < 1) {
     themeLerpProgress = Math.min(
       1,
@@ -259,7 +262,7 @@ function animate() {
     highs = highBins.reduce((a, b) => a + b, 0) / highBins.length || 0;
   }
 
-  // More sensitive mapping (baseline + easing)
+  // Sensitive mapping
   let bassNorm = bass / 70;
   let midNorm = mids / 90;
   let highNorm = highs / 110;
@@ -272,10 +275,9 @@ function animate() {
   const midClamped = Math.min(midNorm, 1.9);
   const highClamped = Math.min(highNorm, 1.7);
 
-  /* ---------- THEME COLOR LERP ---------- */
+  /* THEME LERP */
   const fromFog = hexToRgb(themeFrom.fogColor);
   const toFog = hexToRgb(themeTo.fogColor);
-
   const fogRgb = {
     r: lerpColorChannel(fromFog.r, toFog.r, themeLerpProgress),
     g: lerpColorChannel(fromFog.g, toFog.g, themeLerpProgress),
@@ -285,7 +287,6 @@ function animate() {
   scene.fog.color.setHex(fogHex);
   fogPlanes.forEach(p => p.material.color.setHex(fogHex));
 
-  // Border: soft snap halfway through transition
   document.documentElement.style.setProperty(
     "--card-border-from",
     themeLerpProgress < 0.5 ? themeFrom.cardBorderFrom : themeTo.cardBorderFrom
@@ -295,7 +296,6 @@ function animate() {
     themeLerpProgress < 0.5 ? themeFrom.cardBorderTo : themeTo.cardBorderTo
   );
 
-  // Mist intensities: approximate smoothness by scaling alpha numbers
   const mistATo = themeTo.mistColorA;
   const mistBTo = themeTo.mistColorB;
   const mistIntensity = 1 + themeLerpProgress * 0.3;
@@ -313,7 +313,6 @@ function animate() {
     )
   );
 
-  // Title glow RGB triple
   const fromGlowRgb = cssColorToRgbTriple(themeFrom.titleGlowColor);
   const toGlowRgb = cssColorToRgbTriple(themeTo.titleGlowColor);
   const glowRgb = {
@@ -326,12 +325,9 @@ function animate() {
     rgbTripleToString(glowRgb)
   );
 
-  /* ---------- AUDIO-REACTIVE VISUALS ---------- */
-
-  // Title glow + card scale (more sensitive)
+  /* AUDIO-REACTIVE CARD */
   const glowSize = 24 + bassClamped * 60;
   const glowAlpha = 0.25 + bassClamped * 0.75;
-
   const themeRGB = getComputedStyle(document.documentElement)
     .getPropertyValue("--title-glow-rgb")
     .trim() || "255,255,255";
@@ -339,21 +335,18 @@ function animate() {
   title.style.textShadow =
     `0 0 ${glowSize}px rgba(${themeRGB}, ${glowAlpha})`;
 
-  const scale = 1 + bassClamped * 0.12; // 2.5 * 0.12 ≈ 0.3 → 1.3x
+  const scale = 1 + bassClamped * 0.12; // ~30% max
   const currentCardTransform = card.style.transform || "";
   const cleanedTransform =
     currentCardTransform.replace(/scale\([^)]*\)/, "").trim();
   card.style.transform = `${cleanedTransform} scale(${scale})`.trim();
 
-
-  // Border glow (mids)
   const borderGlow = 1 + midClamped * 5.5;
   card.style.boxShadow =
     `0 45px 90px rgba(0,0,0,0.95), ` +
     `0 0 ${18 + midClamped * 28}px rgba(255,255,255,0.22), ` +
     `inset 0 0 48px rgba(255,255,255,0.07)`;
 
-  // Fog planes (bass)
   const theme = THEMES[currentTheme];
   fogPlanes.forEach((p, i) => {
     p.rotation.z += 0.0008 * (i + 1);
@@ -362,12 +355,10 @@ function animate() {
     p.position.z = -i * 1.2 - bassClamped * 0.55;
   });
 
-  // Mist: drift + breathing
   const mistDriftX = bassClamped * 26;
   const mistScale = 1 + highClamped * 0.13;
   mist.style.transform += ` translateX(${mistDriftX}px) scale(${mistScale})`;
 
-  // Discord line: sensitive shake
   if (discordLine) {
     const shakeX = (Math.random() - 0.5) * highClamped * 5;
     const shakeY = (Math.random() - 0.5) * highClamped * 5;
@@ -376,12 +367,42 @@ function animate() {
     discordLine.style.opacity = 0.82 + highClamped * 0.18;
   }
 
-  // Optional: slow theme switching on sustained energy
   if (bassClamped > 1.4 && midClamped > 1.0 && now - lastThemeSwitch > 15000) {
     const order = ["cyber", "ember", "abyss"];
     const next = order[(order.indexOf(currentTheme) + 1) % order.length];
     applyTheme(next, 1800);
     lastThemeSwitch = now;
+  }
+
+  /* VISUALIZER DRAW (BAR WAVE AT BOTTOM) */
+  if (analyser && vizCtx) {
+    const width = vizCanvas.width;
+    const height = vizCanvas.height;
+    vizCtx.clearRect(0, 0, width, height);
+
+    const bufferLength = dataArray.length;
+    const barCount = 48; // fewer bars for a clean look
+    const step = Math.floor(bufferLength / barCount);
+    const barWidth = width / barCount;
+
+    const baseColor = glowRgb; // align with title glow
+    for (let i = 0; i < barCount; i++) {
+      const v = dataArray[i * step] || 0;
+      const magnitude = v / 255;
+
+      const barHeight = magnitude * height * 0.9;
+
+      const alpha = 0.15 + magnitude * 0.85;
+      const r = baseColor.r;
+      const g = baseColor.g;
+      const b = baseColor.b;
+
+      vizCtx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      const x = i * barWidth;
+      const y = height - barHeight;
+
+      vizCtx.fillRect(x, y, barWidth * 0.8, barHeight);
+    }
   }
 
   renderer.render(scene, camera);

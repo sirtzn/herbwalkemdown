@@ -1,25 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>herb</title>
-  <link rel="stylesheet" href="style.css">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
+  <!-- Three.js background canvas -->
   <canvas id="bg"></canvas>
 
+  <!-- Center scene -->
   <div class="scene">
     <div class="card" id="card">
       <div class="mist" id="mist"></div>
+
       <h1 id="title">herb</h1>
-      <p id="discord">@sirtzn_</p>
-      <p>obscured • low signal</p>
+      <p id="discord">sirtznp</p>
+      <p>obscured low signal</p>
+
+      <!-- Audio visualizer bar wave at bottom of card -->
+      <canvas id="viz"></canvas>
     </div>
   </div>
 
   <!-- Three.js -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+  <!-- Main script -->
   <script src="script.js"></script>
 </body>
 </html>
